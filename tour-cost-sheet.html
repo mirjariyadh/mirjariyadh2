@@ -514,6 +514,8 @@ async function fetchSheet(){
   return { members: newMembers, expenses: newExpenses };
 }
 
+let syncToken = 0; /* guards against an older, slower request overwriting a newer one */
+
 async function manualSync(){
   const btn = document.getElementById('refreshBtn');
   btn.classList.add('spinning');
@@ -522,9 +524,11 @@ async function manualSync(){
 }
 
 async function doSync(){
+  const token = ++syncToken;
   const note = document.getElementById('syncNote');
   try{
     const fresh = await fetchSheet();
+    if(token !== syncToken) return; /* a newer sync already started/finished, discard this one */
     data = fresh;
     render();
     const now = new Date();
@@ -532,6 +536,7 @@ async function doSync(){
     note.className = 'sync-note';
     note.textContent = 'Google Sheet-এর সাথে হালনাগাদ আছে · প্রতি ' + (AUTO_SYNC_MS/1000) + ' সেকেন্ডে অটো-চেক হয়';
   }catch(err){
+    if(token !== syncToken) return;
     render();
     note.className = 'sync-note err';
     note.textContent = 'শিট থেকে আনতে সমস্যা হয়েছে (' + err.message + ') — সর্বশেষ জানা তথ্য দেখানো হচ্ছে।';
