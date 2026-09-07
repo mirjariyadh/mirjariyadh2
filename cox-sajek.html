@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tour Fund Ledger</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=Noto+Sans+Bengali:wght@400;500;600&display=swap');
+
+  :root{
+    --cream: #F5F0E4;
+    --paper: #FBF8F1;
+    --line: #DED2B4;
+    --ink: #211F19;
+    --ink-soft: #726C5A;
+    --forest: #1C4038;
+    --forest-deep: #122A25;
+    --brass: #B9862B;
+    --rust: #A34B31;
+    --paid: #1C4038;
+    --partial: #9C7418;
+    --pending: #A34B31;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Inter', 'Noto Sans Bengali', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 48px 22px 90px;
+  }
+
+  /* ---------------- boarding-pass hero ---------------- */
+  .pass{
+    background: var(--forest);
+    color: var(--cream);
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 18px 40px -20px rgba(18,42,37,0.55);
+    margin-bottom: 44px;
+  }
+
+  .pass-main{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 30px 30px 26px;
+    flex-wrap: wrap;
+  }
+
+  .pass-main h1{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 30px;
+    line-height: 1.15;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .route{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: #CFE3DA;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .route .dash{
+    width: 26px;
+    height: 1px;
+    background: #5F8B7F;
+    position: relative;
+  }
+  .route .dash::after{
+    content: '';
+    position: absolute;
+    right: 0; top: -3px;
+    width: 6px; height: 6px;
+    border-right: 1px solid #5F8B7F;
+    border-top: 1px solid #5F8B7F;
+    transform: rotate(45deg);
+  }
+
+  .pass-meta{
+    text-align: right;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .pass-meta .tag{
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: #9FC1B3;
+    margin-bottom: 5px;
+  }
+  .pass-meta .time{ font-size: 13px; color: var(--cream); }
+  .refresh-btn{
+    margin-top: 10px;
+    border: 1px solid #45685D;
+    background: transparent;
+    color: #CFE3DA;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .refresh-btn:hover{ border-color: #9FC1B3; color: #fff; }
+  .refresh-btn svg{ width: 12px; height: 12px; }
+  .refresh-btn.spinning svg{ animation: spin 0.9s linear infinite; }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  /* perforation */
+  .perf{
+    position: relative;
+    height: 0;
+    border-top: 2px dashed #3F6459;
+    margin: 0 0;
+  }
+  .perf::before, .perf::after{
+    content: '';
+    position: absolute;
+    top: -11px;
+    width: 22px; height: 22px;
+    background: var(--cream);
+    border-radius: 50%;
+  }
+  .perf::before{ left: -11px; }
+  .perf::after{ right: -11px; }
+
+  .pass-stats{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 22px 30px 26px;
+  }
+  .pass-stats .field .k{
+    font-size: 10.5px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #8FB4A6;
+    margin-bottom: 8px;
+  }
+  .pass-stats .field .v{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--cream);
+  }
+  .pass-stats .field.balance .v{ color: #E8CE8C; }
+  .pass-stats .field.perhead .v{ color: #E8CE8C; }
+
+  .sync-note{
+    font-size: 11.5px;
+    padding: 10px 30px;
+    color: #9FC1B3;
+    border-top: 1px solid #2C4E45;
+    background: #16332C;
+  }
+  .sync-note.err{ color: #E3B39F; }
+
+  /* ---------------- sections ---------------- */
+  section{ margin-bottom: 46px; }
+
+  .section-head{
+    display:flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 9px;
+    margin-bottom: 2px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .section-head h2{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 20px;
+    margin: 0;
+  }
+  .section-head .count{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  table{ width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  thead th{
+    text-align: left;
+    font-weight: 500;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    padding: 13px 10px 9px;
+    border-bottom: 1px solid var(--line);
+  }
+  tbody td{ padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tbody tr:last-child td{ border-bottom: none; }
+  td.name{ font-weight: 500; font-family: 'Fraunces', serif; font-size: 15px; }
+  td.num, th.num{ text-align: right; font-family: 'IBM Plex Mono', monospace; }
+
+  .progress-cell{ min-width: 120px; }
+  .progress-track{ width: 100%; height: 5px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .progress-fill{ height: 100%; background: var(--forest); border-radius: 3px; }
+
+  .status{
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 3px 0;
+  }
+  .status::before{
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+  .status.paid{ color: var(--paid); }
+  .status.paid::before{ background: var(--paid); }
+  .status.partial{ color: var(--partial); }
+  .status.partial::before{ background: var(--partial); }
+  .status.pending{ color: var(--pending); }
+  .status.pending::before{ background: var(--pending); }
+
+  .cat{ font-size: 11.5px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; }
+
+  tfoot td{ padding: 14px 10px 4px; font-weight: 600; border-top: 2px solid var(--ink); border-bottom: none; }
+
+  footer.note{
+    font-size: 12px;
+    color: var(--ink-soft);
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  footer.note a{ color: var(--forest); }
+
+  @media (max-width: 640px){
+    .pass-stats{ grid-template-columns: repeat(2, 1fr); row-gap: 18px; }
+    .pass-main{ flex-direction: column; }
+    .pass-meta{ text-align: left; }
+    table{ font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="pass">
+    <div class="pass-main">
+      <div>
+        <h1>Fund Collection &amp; Expense Sheet</h1>
+        <div class="route">DHAKA <span class="dash"></span> CHITTAGONG · TOUR FUND</div>
+      </div>
+      <div class="pass-meta">
+        <div class="tag">সিঙ্ক করা হয়েছে</div>
+        <div class="time" id="syncTime">—</div>
+        <button class="refresh-btn" id="refreshBtn" onclick="manualSync()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+          এখনই সিঙ্ক করুন
+        </button>
+      </div>
+    </div>
+    <div class="perf"></div>
+    <div class="pass-stats">
+      <div class="field">
+        <div class="k">Collected</div>
+        <div class="v" id="statCollected">৳0.00</div>
+      </div>
+      <div class="field">
+        <div class="k">Spent</div>
+        <div class="v" id="statExpenses">৳0.00</div>
+      </div>
+      <div class="field balance">
+        <div class="k">Balance</div>
+        <div class="v" id="statBalance">৳0.00</div>
+      </div>
+      <div class="field perhead">
+        <div class="k">Per head</div>
+        <div class="v" id="statPerHead">৳0.00</div>
+      </div>
+    </div>
+    <div class="sync-note" id="syncNote">লোড হচ্ছে...</div>
+  </div>
+
+  <section>
+    <div class="section-head">
+      <h2>Members</h2>
+      <span class="count" id="memberCount">—</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th class="num">Target</th>
+          <th class="num">Paid</th>
+          <th>Progress</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="membersBody"></tbody>
+      <tfoot>
+        <tr>
+          <td>Total</td>
+          <td class="num" id="footTarget">৳0.00</td>
+          <td class="num" id="footPaid">৳0.00</td>
+          <td></td><td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Expenses</h2>
+      <span class="count" id="expenseCount">—</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th class="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody id="expensesBody"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3">Total</td>
+          <td class="num" id="footExpenses">৳0.00</td>
+        </tr>
+      </tfoot>
+    </table>
+  </section>
+
+  <footer class="note">
+    <span>Cost per person = মোট খরচ ÷ সদস্য সংখ্যা। ব্যালেন্স = মোট সংগৃহীত − মোট খরচ।</span>
+    <span>সরাসরি <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vQZvmQThGNZA2tAnjEl_X5xsx15eBeanD5Uuxv3e0ik2qKxTlLqqVyYA1ygz2m-cTMuojjn4_-4S9zf/pubhtml" target="_blank" rel="noopener">Google Sheet</a> থেকে সিঙ্ক হয়</span>
+  </footer>
+
+</div>
+
+<script>
+/* Published Google Sheet, exported as CSV */
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQZvmQThGNZA2tAnjEl_X5xsx15eBeanD5Uuxv3e0ik2qKxTlLqqVyYA1ygz2m-cTMuojjn4_-4S9zf/pub?output=csv';
+const AUTO_SYNC_MS = 60000; /* re-check the sheet every 60s */
+
+/* fallback snapshot, shown only if the very first fetch fails */
+let data = {
+  members: [
+    { name: 'Rasel',   target: 12000, paid: 3000 },
+    { name: 'Ranju',   target: 12000, paid: 5000 },
+    { name: 'Mazadul', target: 12000, paid: 12000 },
+    { name: 'Raju',    target: 12000, paid: 2000 },
+    { name: 'Bindu',   target: 12000, paid: 12000 },
+    { name: 'Raihan',  target: 12000, paid: 10000 },
+    { name: 'Biplob',  target: 12000, paid: 0 },
+    { name: 'Shajib',  target: 12000, paid: 0 }
+  ],
+  expenses: [
+    { date: '03.09.2026', category: 'Misc',      description: 'T-shirt advanced',              amount: 500 },
+    { date: '07.09.2026', category: 'Transport', description: 'Dhaka to Chittagong (7 Ticket)', amount: 3290 }
+  ]
+};
+
+function fmtMoney(n){
+  n = Number(n) || 0;
+  return '৳' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function statusFor(target, paid){
+  if(paid >= target && target > 0) return { cls: 'paid', label: 'Paid' };
+  if(paid > 0) return { cls: 'partial', label: 'Partial' };
+  return { cls: 'pending', label: 'Pending' };
+}
+
+function render(){
+  const totalTarget = data.members.reduce((s,m)=>s+Number(m.target||0),0);
+  const totalPaid = data.members.reduce((s,m)=>s+Number(m.paid||0),0);
+  const totalExpenses = data.expenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  const balance = totalPaid - totalExpenses;
+  const perHead = data.members.length ? totalExpenses / data.members.length : 0;
+
+  document.getElementById('statCollected').textContent = fmtMoney(totalPaid);
+  document.getElementById('statExpenses').textContent = fmtMoney(totalExpenses);
+  document.getElementById('statBalance').textContent = fmtMoney(balance);
+  document.getElementById('statPerHead').textContent = fmtMoney(perHead);
+  document.getElementById('footTarget').textContent = fmtMoney(totalTarget);
+  document.getElementById('footPaid').textContent = fmtMoney(totalPaid);
+  document.getElementById('footExpenses').textContent = fmtMoney(totalExpenses);
+  document.getElementById('memberCount').textContent = data.members.length + ' জন · ' + fmtMoney(totalTarget) + ' target';
+  document.getElementById('expenseCount').textContent = data.expenses.length + ' entries';
+
+  const mBody = document.getElementById('membersBody');
+  mBody.innerHTML = '';
+  data.members.forEach((m) => {
+    const st = statusFor(Number(m.target), Number(m.paid));
+    const pct = m.target > 0 ? Math.min(100, (m.paid / m.target) * 100) : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="name">${m.name}</td>
+      <td class="num">${fmtMoney(m.target)}</td>
+      <td class="num">${fmtMoney(m.paid)}</td>
+      <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div></td>
+      <td><span class="status ${st.cls}">${st.label}</span></td>
+    `;
+    mBody.appendChild(tr);
+  });
+
+  const eBody = document.getElementById('expensesBody');
+  eBody.innerHTML = '';
+  data.expenses.forEach((e) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${e.date}</td>
+      <td><span class="cat">${e.category}</span></td>
+      <td>${e.description}</td>
+      <td class="num">${fmtMoney(e.amount)}</td>
+    `;
+    eBody.appendChild(tr);
+  });
+}
+
+function parseCsv(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; } else { inQuotes = false; }
+      } else { field += c; }
+    } else {
+      if(c === '"'){ inQuotes = true; }
+      else if(c === ','){ row.push(field); field=''; }
+      else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c === '\r'){ /* skip */ }
+      else { field += c; }
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+
+function toNumber(str){
+  if(!str) return 0;
+  const cleaned = String(str).replace(/[^\d.\-]/g, '');
+  return Number(cleaned) || 0;
+}
+
+function findCol(headerRow, names){
+  for(let c=0;c<headerRow.length;c++){
+    const cell = (headerRow[c]||'').trim().toLowerCase();
+    if(names.includes(cell)) return c;
+  }
+  return -1;
+}
+
+async function fetchSheet(){
+  const res = await fetch(CSV_URL + '&_=' + Date.now(), { cache: 'no-store' });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const text = await res.text();
+  const rows = parseCsv(text);
+
+  let headerRowIdx = -1, nameCol=-1, targetCol=-1, paidCol=-1, dateCol=-1, catCol=-1, descCol=-1, amtCol=-1;
+  for(let r=0;r<rows.length;r++){
+    const nc = findCol(rows[r], ['name']);
+    if(nc !== -1){
+      headerRowIdx = r; nameCol = nc;
+      targetCol = findCol(rows[r], ['target amount','target']);
+      paidCol = findCol(rows[r], ['amount paid','paid']);
+      dateCol = findCol(rows[r], ['date']);
+      catCol = findCol(rows[r], ['category']);
+      descCol = findCol(rows[r], ['description']);
+      amtCol = findCol(rows[r], ['amount']);
+      break;
+    }
+  }
+  if(headerRowIdx === -1) throw new Error('হেডার সারি খুঁজে পাওয়া যায়নি');
+
+  const newMembers = [];
+  const newExpenses = [];
+  for(let r=headerRowIdx+1; r<rows.length; r++){
+    const row = rows[r];
+    const nameVal = (row[nameCol]||'').trim();
+    if(nameVal){
+      newMembers.push({ name: nameVal, target: toNumber(row[targetCol]), paid: toNumber(row[paidCol]) });
+    }
+    if(dateCol !== -1 || catCol !== -1 || descCol !== -1){
+      const dateVal = dateCol!==-1 ? (row[dateCol]||'').trim() : '';
+      const catVal = catCol!==-1 ? (row[catCol]||'').trim() : '';
+      const descVal = descCol!==-1 ? (row[descCol]||'').trim() : '';
+      const amtVal = amtCol!==-1 ? toNumber(row[amtCol]) : 0;
+      if(dateVal || catVal || descVal || amtVal){
+        newExpenses.push({ date: dateVal, category: catVal, description: descVal, amount: amtVal });
+      }
+    }
+  }
+  if(newMembers.length === 0) throw new Error('কোনো সদস্যের তথ্য পাওয়া যায়নি');
+  return { members: newMembers, expenses: newExpenses };
+}
+
+let syncToken = 0; /* guards against an older, slower request overwriting a newer one */
+
+async function manualSync(){
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  await doSync();
+  btn.classList.remove('spinning');
+}
+
+async function doSync(){
+  const token = ++syncToken;
+  const note = document.getElementById('syncNote');
+  try{
+    const fresh = await fetchSheet();
+    if(token !== syncToken) return; /* a newer sync already started/finished, discard this one */
+    data = fresh;
+    render();
+    const now = new Date();
+    document.getElementById('syncTime').textContent = now.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+    note.className = 'sync-note';
+    note.textContent = 'Google Sheet-এর সাথে হালনাগাদ আছে · প্রতি ' + (AUTO_SYNC_MS/1000) + ' সেকেন্ডে অটো-চেক হয়';
+  }catch(err){
+    if(token !== syncToken) return;
+    render();
+    note.className = 'sync-note err';
+    note.textContent = 'শিট থেকে আনতে সমস্যা হয়েছে (' + err.message + ') — সর্বশেষ জানা তথ্য দেখানো হচ্ছে।';
+  }
+}
+
+render();
+doSync();
+setInterval(doSync, AUTO_SYNC_MS);
+</script>
+</body>
+</html>
