@@ -944,7 +944,7 @@ async function doSync(){
     const now = new Date();
     document.getElementById('syncTime').textContent = now.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
     note.className = 'sync-note';
-    note.textContent = 'Google Sheet-এর সাথে হালনাগাদ আছে · প্রতি ' + (AUTO_SYNC_MS/1000) + ' সেকেন্ডে অটো-চেক হয়';
+    note.textContent = 'প্রতি ' + (AUTO_SYNC_MS/1000) + ' সেকেন্ডে অটো-চেক হয়';
   }catch(err){
     if(token !== syncToken) return;
     render();
