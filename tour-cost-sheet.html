@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tour Fund Ledger</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --paper: #F7F3EA;
+    --paper-line: #DED5C0;
+    --ink: #24261F;
+    --ink-soft: #6B6858;
+    --teal: #1E4B45;
+    --teal-deep: #123330;
+    --brass: #B8902F;
+    --rust: #A85236;
+    --paid-bg: #E4EEE7;
+    --paid-fg: #1E4B45;
+    --partial-bg: #F4E8D2;
+    --partial-fg: #8A6416;
+    --pending-bg: #F3E0DA;
+    --pending-fg: #A85236;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 56px 28px 80px;
+  }
+
+  header.masthead{
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 20px;
+    margin-bottom: 36px;
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .masthead h1{
+    font-family: 'Source Serif 4', serif;
+    font-weight: 700;
+    font-size: 34px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+
+  .masthead p{
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 14.5px;
+  }
+
+  .masthead .updated{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    text-align: right;
+  }
+
+  /* summary strip */
+  .stats{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    margin-bottom: 48px;
+    border: 1px solid var(--paper-line);
+    background: #FCFAF4;
+  }
+
+  .stat{
+    padding: 20px 18px;
+    border-right: 1px solid var(--paper-line);
+  }
+  .stat:last-child{ border-right: none; }
+
+  .stat .label{
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+
+  .stat .value{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 21px;
+    font-weight: 600;
+  }
+
+  .stat.balance .value{ color: var(--teal); }
+  .stat.perhead .value{ color: var(--brass); }
+
+  section{ margin-bottom: 48px; }
+
+  .section-head{
+    display:flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+  }
+
+  .section-head h2{
+    font-family: 'Source Serif 4', serif;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .section-head .count{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+
+  table{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14.5px;
+  }
+
+  thead th{
+    text-align: left;
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--ink-soft);
+    padding: 12px 10px 10px;
+    border-bottom: 1px solid var(--paper-line);
+  }
+
+  tbody td{
+    padding: 13px 10px;
+    border-bottom: 1px solid var(--paper-line);
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td{ border-bottom: none; }
+
+  td.name{ font-weight: 500; }
+
+  td.num, th.num{ text-align: right; font-family: 'IBM Plex Mono', monospace; }
+
+  .progress-cell{ min-width: 140px; }
+  .progress-track{
+    width: 100%;
+    height: 6px;
+    background: var(--paper-line);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill{
+    height: 100%;
+    background: var(--teal);
+    border-radius: 3px;
+  }
+
+  .status{
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 3px;
+  }
+  .status.paid{ background: var(--paid-bg); color: var(--paid-fg); }
+  .status.partial{ background: var(--partial-bg); color: var(--partial-fg); }
+  .status.pending{ background: var(--pending-bg); color: var(--pending-fg); }
+
+  .cat{
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  tfoot td{
+    padding: 13px 10px 4px;
+    font-weight: 600;
+    border-top: 2px solid var(--ink);
+    border-bottom: none;
+  }
+
+  footer.note{
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    border-top: 1px solid var(--paper-line);
+    padding-top: 16px;
+  }
+
+  @media (max-width: 640px){
+    .stats{ grid-template-columns: repeat(2, 1fr); }
+    .stat:nth-child(2){ border-right: none; }
+    .stat{ border-bottom: 1px solid var(--paper-line); }
+    table{ font-size: 13px; }
+    thead th:nth-child(2), tbody td:nth-child(2){ display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header class="masthead">
+    <div>
+      <h1>Fund Collection &amp; Expense Sheet</h1>
+      <p>Tour cost tracker — 8 travellers</p>
+    </div>
+    <div class="updated">Last expense logged&nbsp;07.09.2026</div>
+  </header>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Total collected</div>
+      <div class="value">৳44,000.00</div>
+    </div>
+    <div class="stat">
+      <div class="label">Total expenses</div>
+      <div class="value">৳3,790.00</div>
+    </div>
+    <div class="stat balance">
+      <div class="label">Remaining balance</div>
+      <div class="value">৳40,210.00</div>
+    </div>
+    <div class="stat perhead">
+      <div class="label">Cost per person</div>
+      <div class="value">৳473.75</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="section-head">
+      <h2>Members</h2>
+      <span class="count">8 people · ৳96,000.00 target</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th class="num">Target</th>
+          <th class="num">Paid</th>
+          <th>Progress</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="name">Rasel</td>
+          <td class="num">৳12,000.00</td>
+          <td class="num">৳3,000.00</td>
+          <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:25%"></div></div></td>
+          <td><span class="status partial">Partial</span></td>
+        </tr>
+        <tr>
+          <td class="name">Ranju</td>
+          <td class="num">৳12,000.00</td>
+          <td class="num">৳5,000.00</td>
+          <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:42%"></div></div></td>
+          <td><span class="status partial">Partial</span></td>
+        </tr>
+        <tr>
+          <td class="name">Mazadul</td>
+          <td class="num">৳12,000.00</td>
+          <td class="num">৳12,000.00</td>
+          <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:100%"></div></div></td>
+          <td><span class="status paid">Paid</span></td>
+        </tr>
+        <tr>
+          <td class="name">Raju</td>
+          <td class="num">৳12,000.00</td>
+          <td class="num">৳2,000.00</td>
+          <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:17%"></div></div></td>
+          <td><span class="status partial">Partial</span></td>
+        </tr>
+        <tr>
+          <td class="name">Bindu</td>
+          <td class="num">৳12,000.00</td>
+          <td class="num">৳12,000.00</td>
+          <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:100%"></div></div></td>
+          <td><span class="status paid">Paid</span></td>
+        </tr>
+        <tr>
+          <td class="name">Raihan</td>
+          <td class="num">৳12,000.00</td>
+          <td class="num">৳10,000.00</td>
+          <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:83%"></div></div></td>
+          <td><span class="status partial">Partial</span></td>
+        </tr>
+        <tr>
+          <td class="name">Biplob</td>
+          <td class="num">৳12,000.00</td>
+          <td class="num">৳0.00</td>
+          <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:0%"></div></div></td>
+          <td><span class="status pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td class="name">Shajib</td>
+          <td class="num">৳12,000.00</td>
+          <td class="num">৳0.00</td>
+          <td class="progress-cell"><div class="progress-track"><div class="progress-fill" style="width:0%"></div></div></td>
+          <td><span class="status pending">Pending</span></td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Total</td>
+          <td class="num">৳96,000.00</td>
+          <td class="num">৳44,000.00</td>
+          <td></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Expenses</h2>
+      <span class="count">2 entries</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th class="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>03.09.2026</td>
+          <td><span class="cat">Misc</span></td>
+          <td>T-shirt advanced</td>
+          <td class="num">৳500.00</td>
+        </tr>
+        <tr>
+          <td>07.09.2026</td>
+          <td><span class="cat">Transport</span></td>
+          <td>Dhaka to Chittagong (7 Ticket)</td>
+          <td class="num">৳3,290.00</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3">Total</td>
+          <td class="num">৳3,790.00</td>
+        </tr>
+      </tfoot>
+    </table>
+  </section>
+
+  <footer class="note">
+    Cost per person is based on total expenses split across 8 travellers. Balance reflects funds collected minus expenses logged so far.
+  </footer>
+
+</div>
+</body>
+</html>
