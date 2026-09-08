@@ -728,7 +728,7 @@ async function shareStatementPdf(){
     y += 5;
     doc.setFontSize(8.5);
     doc.setTextColor(110);
-    doc.text('Dhaka -> Chittagong  |  Tour Fund', pageWidth / 2, y, { align: 'center' });
+    doc.text("Cox's Bazar -> Sajek  |  Tour Fund", pageWidth / 2, y, { align: 'center' });
     y += 4;
     const now = new Date();
     doc.text('Generated: ' + now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }), pageWidth / 2, y, { align: 'center' });
@@ -834,7 +834,7 @@ async function shareStatementPdf(){
     doc.setFont('courier', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(110);
-    const noteLines = doc.splitTextToSize('Cost per person = Total expenses / number of members. Balance = Total collected - Total expenses.', contentWidth);
+    const noteLines = doc.splitTextToSize('https://tinyurl.com/26-cox-sajek', contentWidth);
     doc.text(noteLines, marginX, y);
     y += noteLines.length * 3.4 + 5;
     doc.setFont('courier', 'bold');
