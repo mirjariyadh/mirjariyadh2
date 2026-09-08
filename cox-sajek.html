@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -445,6 +445,74 @@
     tfoot td{ border-top: none; padding: 0; }
     table tfoot{ border-top: 2px solid var(--ink); margin-top: 4px; }
   }
+
+  /* ---------------- print button ---------------- */
+  .print-btn{
+    margin-top: 10px;
+    margin-left: 8px;
+    border: 1px solid #45685D;
+    background: transparent;
+    color: #CFE3DA;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .print-btn:hover{ border-color: #9FC1B3; color: #fff; }
+  .print-btn svg{ width: 12px; height: 12px; }
+
+  /* ---------------- print / PDF styles ---------------- */
+  @media print{
+    @page{ size: A4; margin: 14mm 12mm; }
+
+    body{ background: #fff; }
+    .wrap{ max-width: 100%; padding: 0; margin: 0; }
+
+    .refresh-btn, .print-btn, .filter-bar, .filter-clear,
+    .sync-note, .ms-panel{ display: none !important; }
+
+    .pass{
+      background: #fff !important;
+      color: var(--ink) !important;
+      border: 1px solid var(--ink);
+      border-radius: 0;
+      box-shadow: none;
+      margin-bottom: 22px;
+      break-inside: avoid;
+    }
+    .pass-main{ padding: 16px 18px 12px; }
+    .pass-main h1{ color: var(--ink); font-size: 22px; }
+    .route{ color: var(--ink-soft); }
+    .route .dash{ background: var(--ink-soft); }
+    .route .dash::after{ border-color: var(--ink-soft); }
+    .pass-meta{ display: none; }
+    .perf{ border-top: 1px dashed var(--line); }
+    .perf::before, .perf::after{ display: none; }
+    .pass-stats{ padding: 14px 18px 16px; }
+    .pass-stats .field .k{ color: var(--ink-soft); }
+    .pass-stats .field .v{ color: var(--ink) !important; }
+    .pass-stats .field.balance .v{ color: var(--forest) !important; }
+    .pass-stats .field.perhead .v{ color: var(--forest) !important; }
+
+    section{ margin-bottom: 26px; break-inside: avoid; }
+    table{ font-size: 12px; }
+    thead{ display: table-header-group !important; }
+    tbody, tfoot{ display: table-row-group !important; }
+    tbody tr{ display: table-row !important; border: none; padding: 0; margin: 0; background: none; }
+    tbody td{ display: table-cell !important; padding: 8px 8px; text-align: left; }
+    tbody td::before{ content: none !important; }
+    td.num, th.num{ text-align: right; }
+    tbody td.name{ border-bottom: 1px solid var(--line); margin-bottom: 0; padding-bottom: 8px; }
+    tr{ break-inside: avoid; }
+    tfoot{ display: table-footer-group !important; }
+    tfoot tr{ display: table-row !important; padding: 0; }
+
+    footer.note{ margin-top: 10px; }
+  }
 </style>
 </head>
 <body>
@@ -457,11 +525,15 @@
         <div class="route">DHAKA <span class="dash"></span> CHITTAGONG · TOUR FUND</div>
       </div>
       <div class="pass-meta">
-        <div class="tag">সিঙ্ক করা হয়েছে</div>
+        <div class="tag">Synced</div>
         <div class="time" id="syncTime">—</div>
         <button class="refresh-btn" id="refreshBtn" onclick="manualSync()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
-          এখনই সিঙ্ক করুন
+          Sync now
+        </button>
+        <button class="print-btn" id="printBtn" onclick="window.print()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print / Save PDF
         </button>
       </div>
     </div>
@@ -484,7 +556,7 @@
         <div class="v" id="statPerHead">৳0.00</div>
       </div>
     </div>
-    <div class="sync-note" id="syncNote">লোড হচ্ছে...</div>
+    <div class="sync-note" id="syncNote">Loading...</div>
   </div>
 
   <section>
@@ -521,30 +593,30 @@
     </div>
     <div class="filter-bar">
       <div class="filter-field">
-        <label for="dateFrom">শুরুর তারিখ</label>
-        <select id="dateFrom"><option value="">শুরু থেকে</option></select>
+        <label for="dateFrom">From date</label>
+        <select id="dateFrom"><option value="">From start</option></select>
       </div>
       <div class="filter-field">
-        <label for="dateTo">শেষ তারিখ</label>
-        <select id="dateTo"><option value="">শেষ পর্যন্ত</option></select>
+        <label for="dateTo">To date</label>
+        <select id="dateTo"><option value="">To end</option></select>
       </div>
       <div class="filter-field ms-dropdown" id="categoryDropdown">
-        <label>ক্যাটাগরি</label>
+        <label>Category</label>
         <button type="button" class="ms-toggle" onclick="toggleMs('category')">
-          <span id="categorySummary">সব</span> <span class="ms-caret">▾</span>
+          <span id="categorySummary">All</span> <span class="ms-caret">▾</span>
         </button>
         <div class="ms-panel" id="categoryPanel"></div>
       </div>
       <div class="filter-field ms-dropdown" id="descriptionDropdown">
         <label>Description</label>
         <button type="button" class="ms-toggle" onclick="toggleMs('description')">
-          <span id="descriptionSummary">সব</span> <span class="ms-caret">▾</span>
+          <span id="descriptionSummary">All</span> <span class="ms-caret">▾</span>
         </button>
         <div class="ms-panel" id="descriptionPanel"></div>
       </div>
-      <button class="filter-clear" id="filterClearBtn" onclick="clearFilter()">ফিল্টার মুছুন</button>
+      <button class="filter-clear" id="filterClearBtn" onclick="clearFilter()">Clear filter</button>
       <div class="filter-summary">
-        <span class="lbl" id="filterSummaryLabel">মোট (সব খরচ)</span>
+        <span class="lbl" id="filterSummaryLabel">Total (all expenses)</span>
         <span id="filterTotal">৳0.00</span>
       </div>
     </div>
@@ -568,7 +640,7 @@
   </section>
 
   <footer class="note">
-    <span>Cost per person = মোট খরচ ÷ সদস্য সংখ্যা। ব্যালেন্স = মোট সংগৃহীত − মোট খরচ।</span>
+    <span>Cost per person = Total expenses ÷ number of members. Balance = Total collected − Total expenses.</span>
     <span>The Adventure Wave</span>
   </footer>
 
@@ -622,7 +694,7 @@ function render(){
   document.getElementById('footTarget').textContent = fmtMoney(totalTarget);
   document.getElementById('footPaid').textContent = fmtMoney(totalPaid);
   document.getElementById('footExpenses').textContent = fmtMoney(totalExpenses);
-  document.getElementById('memberCount').textContent = data.members.length + ' জন · ' + fmtMoney(totalTarget) + ' target';
+  document.getElementById('memberCount').textContent = data.members.length + ' members · ' + fmtMoney(totalTarget) + ' target';
   document.getElementById('expenseCount').textContent = data.expenses.length + ' entries';
 
   const mBody = document.getElementById('membersBody');
@@ -674,8 +746,8 @@ function populateDateDropdowns(){
   const to = document.getElementById('dateTo');
   const oldFrom = from.value, oldTo = to.value;
 
-  from.innerHTML = '<option value="">শুরু থেকে</option>';
-  to.innerHTML = '<option value="">শেষ পর্যন্ত</option>';
+  from.innerHTML = '<option value="">From start</option>';
+  to.innerHTML = '<option value="">To end</option>';
 
   dateKeys.forEach(key => {
     const original = data.expenses.find(e => toDateKey(e.date) === key)?.date || key;
@@ -698,8 +770,8 @@ function renderMsPanel(type){
   const actions = document.createElement('div');
   actions.className = 'ms-actions';
   actions.innerHTML = `
-    <button type="button" onclick="setAllMs('${type}', true)">সব নির্বাচন</button>
-    <button type="button" onclick="setAllMs('${type}', false)">সব বাতিল</button>
+    <button type="button" onclick="setAllMs('${type}', true)">Select all</button>
+    <button type="button" onclick="setAllMs('${type}', false)">Clear all</button>
   `;
   panel.appendChild(actions);
 
@@ -707,7 +779,7 @@ function renderMsPanel(type){
   if(!values.length){
     const empty = document.createElement('div');
     empty.className = 'ms-empty';
-    empty.textContent = 'কোনো তথ্য নেই';
+    empty.textContent = 'No data';
     panel.appendChild(empty);
   } else {
     values.forEach(value => {
@@ -743,9 +815,9 @@ function updateMsSummary(type){
   const total = document.querySelectorAll(`#${type}Panel input[type="checkbox"]`).length;
   const el = document.getElementById(type + 'Summary');
 
-  if(!selected.length || selected.length === total) el.textContent = 'সব';
+  if(!selected.length || selected.length === total) el.textContent = 'All';
   else if(selected.length === 1) el.textContent = selected[0];
-  else el.textContent = selected.length + 'টি নির্বাচিত';
+  else el.textContent = selected.length + ' selected';
 }
 
 function setAllMs(type, checked){
@@ -805,7 +877,7 @@ function renderExpenses(){
   const filteredTotal = filtered.reduce((s,e)=>s+Number(e.amount||0),0);
 
   document.getElementById('expenseCount').textContent = filtered.length + ' / ' + data.expenses.length + ' entries';
-  document.getElementById('filterSummaryLabel').textContent = isFiltered ? 'ফিল্টার করা মোট' : 'মোট (সব খরচ)';
+  document.getElementById('filterSummaryLabel').textContent = isFiltered ? 'Filtered total' : 'Total (all expenses)';
   document.getElementById('filterTotal').textContent = fmtMoney(filteredTotal);
   document.getElementById('footExpenses').textContent = fmtMoney(filteredTotal);
 
@@ -814,7 +886,7 @@ function renderExpenses(){
 
   if(filtered.length === 0){
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="4" style="text-align:center; color:var(--ink-soft); padding:20px 10px;">এই ফিল্টারে কোনো খরচ নেই</td>`;
+    tr.innerHTML = `<td colspan="4" style="text-align:center; color:var(--ink-soft); padding:20px 10px;">No expenses match this filter</td>`;
     eBody.appendChild(tr);
     return;
   }
@@ -899,7 +971,7 @@ async function fetchSheet(){
       break;
     }
   }
-  if(headerRowIdx === -1) throw new Error('হেডার সারি খুঁজে পাওয়া যায়নি');
+  if(headerRowIdx === -1) throw new Error('Header row not found');
 
   const newMembers = [];
   const newExpenses = [];
@@ -919,7 +991,7 @@ async function fetchSheet(){
       }
     }
   }
-  if(newMembers.length === 0) throw new Error('কোনো সদস্যের তথ্য পাওয়া যায়নি');
+  if(newMembers.length === 0) throw new Error('No member data found');
   return { members: newMembers, expenses: newExpenses };
 }
 
@@ -942,14 +1014,14 @@ async function doSync(){
     refreshExpenseFilters();
     render();
     const now = new Date();
-    document.getElementById('syncTime').textContent = now.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('syncTime').textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     note.className = 'sync-note';
-    note.textContent = 'প্রতি ' + (AUTO_SYNC_MS/1000) + ' সেকেন্ডে অটো-চেক হয়';
+    note.textContent = 'Auto-checks every ' + (AUTO_SYNC_MS/1000) + ' seconds';
   }catch(err){
     if(token !== syncToken) return;
     render();
     note.className = 'sync-note err';
-    note.textContent = 'শিট থেকে আনতে সমস্যা হয়েছে (' + err.message + ') — সর্বশেষ জানা তথ্য দেখানো হচ্ছে।';
+    note.textContent = 'Could not fetch from the sheet (' + err.message + ') — showing last known data.';
   }
 }
 
