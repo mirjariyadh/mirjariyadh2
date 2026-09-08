@@ -463,7 +463,9 @@
     gap: 6px;
   }
   .print-btn:hover{ border-color: #9FC1B3; color: #fff; }
+  .print-btn:disabled{ opacity: 0.6; cursor: default; }
   .print-btn svg{ width: 12px; height: 12px; }
+  .print-btn.working svg{ animation: spin 0.9s linear infinite; }
 
   /* ---------------- print / PDF styles ---------------- */
   @media print{
@@ -513,6 +515,38 @@
 
     footer.note{ margin-top: 10px; }
   }
+
+  /* ---------------- on-screen "capture for PDF" state ----------------
+     Applied to <body> only while the Share PDF button builds the file,
+     so html2canvas grabs a clean, desktop-style, table layout regardless
+     of the actual screen width (phones included). Removed immediately after. */
+  body.capturing-pdf{ background: #fff; }
+  body.capturing-pdf .wrap{ max-width: 880px; padding: 32px 22px; }
+
+  body.capturing-pdf .refresh-btn,
+  body.capturing-pdf .print-btn,
+  body.capturing-pdf .filter-bar,
+  body.capturing-pdf .filter-clear,
+  body.capturing-pdf .sync-note,
+  body.capturing-pdf .ms-panel{ display: none !important; }
+
+  body.capturing-pdf .pass-meta{ display: none !important; }
+  body.capturing-pdf .pass-main{ flex-direction: row; padding: 30px 30px 26px; }
+  body.capturing-pdf .pass-stats{ grid-template-columns: repeat(4, 1fr) !important; row-gap: 0; padding: 22px 30px 26px; }
+
+  body.capturing-pdf table{ font-size: 14px; }
+  body.capturing-pdf thead{ display: table-header-group !important; }
+  body.capturing-pdf tbody,
+  body.capturing-pdf tfoot{ display: table-row-group !important; }
+  body.capturing-pdf tbody tr{ display: table-row !important; border: none; padding: 0; margin: 0; background: none; }
+  body.capturing-pdf tbody td{ display: table-cell !important; padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--line); }
+  body.capturing-pdf tbody td::before{ content: none !important; }
+  body.capturing-pdf td.num, body.capturing-pdf th.num{ text-align: right; }
+  body.capturing-pdf tbody td.name{ font-size: 15px; padding-bottom: 12px; margin-bottom: 0; border-bottom: 1px solid var(--line); }
+  body.capturing-pdf .progress-cell{ min-width: 120px; width: auto; }
+  body.capturing-pdf tfoot{ display: table-footer-group !important; }
+  body.capturing-pdf tfoot tr{ display: table-row !important; padding: 0; }
+  body.capturing-pdf tfoot td{ padding: 14px 10px 4px; }
 </style>
 </head>
 <body>
@@ -521,8 +555,8 @@
   <div class="pass">
     <div class="pass-main">
       <div>
-        <h1>Fund Collection · Expense Sheet <br> THE ADVENTURE WAVE</h1>
-        <div class="route">Cox's Bazar - Sajek <span class="dash"></span>Tour Fund</div>
+        <h1>Fund Collection · Expense Sheet &amp; The Adventure Wave</h1>
+        <div class="route">DHAKA <span class="dash"></span> CHITTAGONG · TOUR FUND</div>
       </div>
       <div class="pass-meta">
         <div class="tag">Synced</div>
@@ -531,9 +565,9 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
           Sync now
         </button>
-        <button class="print-btn" id="printBtn" onclick="window.print()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          Print / Save PDF
+        <button class="print-btn" id="printBtn" onclick="shareStatementPdf()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <span id="printBtnLabel">Share PDF</span>
         </button>
       </div>
     </div>
@@ -646,6 +680,10 @@
 
 </div>
 
+<!-- PDF generation + native share libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <script>
 /* Published Google Sheet, exported as CSV */
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQZvmQThGNZA2tAnjEl_X5xsx15eBeanD5Uuxv3e0ik2qKxTlLqqVyYA1ygz2m-cTMuojjn4_-4S9zf/pub?output=csv';
@@ -678,6 +716,87 @@ function statusFor(target, paid){
   if(paid >= target && target > 0) return { cls: 'paid', label: 'Paid' };
   if(paid > 0) return { cls: 'partial', label: 'Partial' };
   return { cls: 'pending', label: 'Pending' };
+}
+
+/* Build a PDF of the statement and open the device's native share sheet
+   (WhatsApp, etc.) with the PDF file attached. Falls back to a plain
+   download if the browser can't share files directly. */
+async function shareStatementPdf(){
+  const btn = document.getElementById('printBtn');
+  const label = document.getElementById('printBtnLabel');
+  if(btn.disabled) return;
+
+  const originalLabel = label.textContent;
+  btn.disabled = true;
+  btn.classList.add('working');
+  label.textContent = 'Preparing PDF...';
+
+  document.body.classList.add('capturing-pdf');
+  /* let the layout settle into its "capture" state before screenshotting */
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  try{
+    const target = document.querySelector('.wrap');
+    const canvas = await html2canvas(target, {
+      scale: 2,
+      backgroundColor: '#F5F0E4',
+      useCORS: true
+    });
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const imgData = canvas.toDataURL('image/png');
+
+    let heightLeft = imgHeight;
+    let position = 0;
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    while(heightLeft > 0){
+      position -= pageHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    const fileName = 'tour-fund-statement-' + new Date().toISOString().slice(0, 10) + '.pdf';
+    const pdfBlob = pdf.output('blob');
+    const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      label.textContent = 'Opening share sheet...';
+      await navigator.share({
+        files: [file],
+        title: 'Tour Fund Statement',
+        text: 'Tour Fund Ledger statement — Cox\'s Bazar trip'
+      });
+    } else {
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      alert('Direct sharing isn\'t supported in this browser, so the PDF was downloaded instead — attach it to WhatsApp manually from your Downloads.');
+    }
+  } catch(err){
+    /* AbortError just means the user closed the native share sheet */
+    if(err.name !== 'AbortError'){
+      console.error(err);
+      alert('Could not create the PDF: ' + err.message);
+    }
+  } finally {
+    document.body.classList.remove('capturing-pdf');
+    btn.disabled = false;
+    btn.classList.remove('working');
+    label.textContent = originalLabel;
+  }
 }
 
 function render(){
