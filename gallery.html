@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact Sheet — Drive Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#17140f;
+    --surface:#1f1b15;
+    --surface-2:#241f18;
+    --line:#34302a;
+    --text:#f1ece1;
+    --text-dim:#a79c8a;
+    --accent:#d98e2b;
+    --accent-dim:#8a651f;
+    --warn:#c1553d;
+    --cell:220px;
+    --thumb-size:480;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    min-height:100vh;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important; animation:none !important;}
+  }
+
+  /* ---------- Top bar ---------- */
+  header{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:16px;
+    padding:18px 28px;
+    background:rgba(23,20,15,0.92);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .brand{display:flex; align-items:baseline; gap:10px;}
+  .brand h1{
+    font-family:"Fraunces",serif;
+    font-weight:600;
+    font-size:22px;
+    margin:0;
+    letter-spacing:0.2px;
+  }
+  .brand .count{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px;
+    color:var(--text-dim);
+  }
+  .controls{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+
+  .seg{
+    display:flex; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;
+  }
+  .seg button{
+    background:var(--surface);
+    color:var(--text-dim);
+    border:none;
+    padding:7px 12px;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11px;
+    cursor:pointer;
+    border-right:1px solid var(--line);
+  }
+  .seg button:last-child{border-right:none;}
+  .seg button:hover{color:var(--text);}
+  .seg button.active{background:var(--accent); color:#1a1408;}
+
+  .icon-btn{
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    width:34px; height:34px;
+    border-radius:var(--radius);
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:hover{color:var(--text); border-color:var(--text-dim);}
+  .icon-btn.spinning svg{animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  button:focus-visible, a:focus-visible, input:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px;
+  }
+
+  /* ---------- Settings drawer ---------- */
+  #settings{
+    max-height:0; overflow:hidden;
+    background:var(--surface-2);
+    border-bottom:1px solid var(--line);
+    transition:max-height 0.25s ease;
+  }
+  #settings.open{max-height:260px;}
+  .settings-inner{
+    padding:20px 28px 24px;
+    display:grid; grid-template-columns:1fr 1fr; gap:18px;
+    max-width:900px;
+  }
+  @media (max-width:640px){ .settings-inner{grid-template-columns:1fr;} }
+  .field label{
+    display:block; font-family:"IBM Plex Mono",monospace; font-size:11px;
+    color:var(--text-dim); margin-bottom:6px;
+  }
+  .field input{
+    width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text);
+    padding:9px 10px; border-radius:var(--radius); font-size:13px; font-family:inherit;
+  }
+  .settings-note{
+    grid-column:1/-1;
+    font-size:12.5px; color:var(--text-dim); line-height:1.6; max-width:640px;
+  }
+  .settings-note a{color:var(--accent);}
+  .settings-actions{grid-column:1/-1; display:flex; gap:10px; align-items:center;}
+  .btn-primary{
+    background:var(--accent); color:#1a1408; border:none; padding:9px 16px;
+    border-radius:var(--radius); font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .btn-primary:hover{background:#e6a04a;}
+  #status-msg{font-size:12px; font-family:"IBM Plex Mono",monospace; color:var(--warn);}
+
+  /* ---------- Grid ---------- */
+  main{padding:28px;}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(var(--cell), 1fr));
+    gap:14px;
+  }
+  .frame{
+    position:relative;
+    aspect-ratio:1/1;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .frame .no{
+    position:absolute; top:6px; left:8px;
+    font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--text-dim);
+    z-index:2; text-shadow:0 1px 3px rgba(0,0,0,0.8);
+  }
+  .frame img{
+    width:100%; height:100%; object-fit:cover; display:block;
+    background:linear-gradient(120deg, var(--surface) 25%, var(--surface-2) 37%, var(--surface) 63%);
+    background-size:400% 100%;
+    animation:shimmer 1.4s ease infinite;
+    opacity:0; transition:opacity 0.35s ease;
+  }
+  .frame img.loaded{opacity:1; animation:none; background:none;}
+  @keyframes shimmer{
+    0%{background-position:100% 0;} 100%{background-position:0 0;}
+  }
+  .frame .overlay{
+    position:absolute; inset:auto 0 0 0;
+    padding:8px 8px 7px;
+    background:linear-gradient(to top, rgba(0,0,0,0.78), rgba(0,0,0,0));
+    display:flex; align-items:flex-end; justify-content:space-between; gap:6px;
+    opacity:0; transition:opacity 0.15s ease;
+  }
+  .frame:hover .overlay, .frame:focus-within .overlay{opacity:1;}
+  .frame .fname{
+    font-size:11px; color:var(--text); overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; flex:1; min-width:0;
+  }
+  .dl-btn{
+    flex-shrink:0;
+    background:var(--accent); color:#1a1408;
+    width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    text-decoration:none;
+  }
+  .dl-btn:hover{background:#e6a04a;}
+
+  /* ---------- Empty / error states ---------- */
+  .empty{
+    text-align:center; padding:90px 20px; color:var(--text-dim);
+    max-width:420px; margin:0 auto;
+  }
+  .empty h2{
+    font-family:"Fraunces",serif; font-weight:500; color:var(--text);
+    font-size:19px; margin:0 0 10px;
+  }
+  .empty p{font-size:13.5px; line-height:1.6; margin:0 0 18px;}
+
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(10px);
+    background:var(--surface); border:1px solid var(--line); color:var(--text);
+    padding:10px 16px; border-radius:var(--radius); font-size:12.5px;
+    font-family:"IBM Plex Mono",monospace;
+    opacity:0; pointer-events:none; transition:opacity 0.25s ease, transform 0.25s ease;
+    z-index:30;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Contact Sheet</h1>
+    <span class="count" id="frame-count">0 frames</span>
+  </div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Thumbnail size">
+      <button type="button" data-size="small">Small</button>
+      <button type="button" data-size="medium" class="active">Medium</button>
+      <button type="button" data-size="large">Large</button>
+    </div>
+    <button class="icon-btn" id="refresh-btn" title="Refresh from Drive" aria-label="Refresh">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+    </button>
+    <button class="icon-btn" id="settings-btn" title="Connection settings" aria-label="Settings">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+</header>
+
+<div id="settings">
+  <div class="settings-inner">
+    <div class="field" style="grid-column:1/-1;">
+      <label for="script-url">Apps Script Web App URL</label>
+      <input id="script-url" type="text" placeholder="https://script.google.com/macros/s/…/exec">
+    </div>
+    <p class="settings-note">
+      This page reads your folder through a tiny script that runs under <em>your own</em> Google account —
+      no API key, no Cloud project, no billing. One-time setup, about 2 minutes:
+    </p>
+    <ol class="settings-note" style="padding-left:18px; margin-top:-8px;">
+      <li>Go to <a href="https://script.google.com/" target="_blank" rel="noopener">script.google.com</a> → <strong>New project</strong>.</li>
+      <li>Delete the placeholder code, paste in the script below, then click <strong>Deploy → New deployment</strong>.</li>
+      <li>Type: <strong>Web app</strong>. Execute as: <strong>Me</strong>. Who has access: <strong>Anyone</strong>. Click <strong>Deploy</strong>, and approve the permission prompt (it's your own script asking to read your own Drive).</li>
+      <li>Copy the <strong>Web app URL</strong> it gives you and paste it into the field above.</li>
+    </ol>
+    <div class="field" style="grid-column:1/-1;">
+      <label>Script to paste (already set to your folder)</label>
+      <textarea id="script-code" readonly rows="8" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:10px; border-radius:var(--radius); font-family:'IBM Plex Mono',monospace; font-size:11.5px; resize:vertical;"></textarea>
+      <button class="icon-btn" id="copy-script-btn" title="Copy script" style="margin-top:8px; width:auto; padding:0 12px; font-family:'IBM Plex Mono',monospace; font-size:11px;">Copy script</button>
+    </div>
+    <div class="settings-actions">
+      <button class="btn-primary" id="connect-btn">Load frames</button>
+      <span id="status-msg"></span>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty-state" hidden>
+    <h2>No frames loaded</h2>
+    <p>Paste your Apps Script Web App URL above, then load frames. Once connected, anything you upload to the folder later will show up here too — use the refresh icon, or wait for the auto-refresh.</p>
+    <button class="btn-primary" id="empty-connect-btn">Connect folder</button>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const FOLDER_ID_DEFAULT = "1lXkHud8ZmDUwKuwFp7m-1bIGj8VUSGFq";
+  const params = new URLSearchParams(location.search);
+
+  const APPS_SCRIPT_TEMPLATE = `function doGet(e) {
+  var folderId = "${FOLDER_ID_DEFAULT}";
+  var folder = DriveApp.getFolderById(folderId);
+  var files = folder.getFiles();
+  var out = [];
+  while (files.hasNext()) {
+    var f = files.next();
+    var mime = f.getMimeType();
+    if (mime.indexOf("image/") === 0) {
+      out.push({
+        id: f.getId(),
+        name: f.getName(),
+        createdTime: f.getDateCreated().toISOString()
+      });
+    }
+  }
+  out.sort(function(a, b){ return new Date(b.createdTime) - new Date(a.createdTime); });
+  return ContentService.createTextOutput(JSON.stringify({ files: out }))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+  const state = {
+    scriptUrl: params.get('script') || '',
+    files: new Map(), // id -> file meta
+    size: 'medium',
+  };
+
+  const sizeConfig = {
+    small:  { cell: 140, thumb: 300 },
+    medium: { cell: 220, thumb: 480 },
+    large:  { cell: 340, thumb: 720 },
+  };
+
+  const el = {
+    grid: document.getElementById('grid'),
+    empty: document.getElementById('empty-state'),
+    count: document.getElementById('frame-count'),
+    settings: document.getElementById('settings'),
+    scriptUrlInput: document.getElementById('script-url'),
+    statusMsg: document.getElementById('status-msg'),
+    toast: document.getElementById('toast'),
+    refreshBtn: document.getElementById('refresh-btn'),
+  };
+
+  document.getElementById('script-code').value = APPS_SCRIPT_TEMPLATE;
+  document.getElementById('copy-script-btn').addEventListener('click', () => {
+    const ta = document.getElementById('script-code');
+    ta.select();
+    navigator.clipboard?.writeText(APPS_SCRIPT_TEMPLATE).then(() => showToast('Script copied'));
+  });
+  if (state.scriptUrl) el.scriptUrlInput.value = state.scriptUrl;
+
+  document.getElementById('settings-btn').addEventListener('click', () => {
+    el.settings.classList.toggle('open');
+  });
+  document.getElementById('empty-connect-btn').addEventListener('click', () => {
+    el.settings.classList.add('open');
+    if (el.scriptUrlInput.value.trim()) {
+      state.scriptUrl = el.scriptUrlInput.value.trim();
+      loadFolder();
+    } else {
+      el.scriptUrlInput.focus();
+    }
+  });
+
+  document.querySelectorAll('.seg button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.seg button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.size = btn.dataset.size;
+      applySize();
+    });
+  });
+
+  function thumbUrl(fileId, size){
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${size}`;
+  }
+
+  function applySize(){
+    const cfg = sizeConfig[state.size];
+    document.documentElement.style.setProperty('--cell', cfg.cell + 'px');
+    // re-point any already-loaded thumbnails at the right resolution
+    document.querySelectorAll('.frame img[data-file-id]').forEach(img => {
+      const url = thumbUrl(img.dataset.fileId, cfg.thumb);
+      if (img.classList.contains('loaded')) img.src = url;
+      else img.dataset.src = url;
+    });
+  }
+
+  function showToast(msg){
+    el.toast.textContent = msg;
+    el.toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => el.toast.classList.remove('show'), 3200);
+  }
+
+  // ---------- Lazy loading ----------
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const img = entry.target;
+      const src = img.dataset.src;
+      if (src && img.src !== src) {
+        img.src = src;
+        img.addEventListener('load', () => img.classList.add('loaded'), { once:true });
+      }
+      io.unobserve(img);
+    });
+  }, { rootMargin: '400px 0px', threshold: 0.01 });
+
+  // ---------- Rendering ----------
+  function renderFrame(file, index){
+    const cfg = sizeConfig[state.size];
+    const thumbSrc = thumbUrl(file.id, cfg.thumb);
+    const downloadUrl = `https://drive.google.com/uc?export=download&id=${file.id}`;
+
+    const frame = document.createElement('div');
+    frame.className = 'frame';
+    frame.dataset.id = file.id;
+    frame.innerHTML = `
+      <span class="no">${String(index + 1).padStart(3,'0')}</span>
+      <img alt="${escapeHtml(file.name)}" data-src="${thumbSrc}" data-file-id="${file.id}" loading="lazy">
+      <div class="overlay">
+        <span class="fname" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+        <a class="dl-btn" href="${downloadUrl}" download="${escapeHtml(file.name)}" target="_blank" rel="noopener" title="Download" aria-label="Download ${escapeHtml(file.name)}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        </a>
+      </div>
+    `;
+    el.grid.appendChild(frame);
+    io.observe(frame.querySelector('img'));
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function rerenderAll(){
+    el.grid.innerHTML = '';
+    let i = 0;
+    for (const file of state.files.values()) renderFrame(file, i++);
+    el.count.textContent = `${state.files.size} frame${state.files.size === 1 ? '' : 's'}`;
+    el.empty.hidden = state.files.size > 0;
+  }
+
+  // ---------- Apps Script bridge ----------
+  async function fetchFolderFiles(scriptUrl){
+    const url = scriptUrl + (scriptUrl.includes('?') ? '&' : '?') + 'ts=' + Date.now();
+    const res = await fetch(url, { redirect: 'follow' });
+    if (!res.ok){
+      throw new Error(`Script returned HTTP ${res.status}. Check the deployment is set to "Anyone" access.`);
+    }
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data.files || [];
+  }
+
+  async function loadFolder({ silent } = {}){
+    if (!state.scriptUrl){
+      el.statusMsg.textContent = 'Paste your Apps Script Web App URL above.';
+      return;
+    }
+    if (!silent){
+      el.statusMsg.textContent = 'Loading…';
+      el.statusMsg.style.color = 'var(--text-dim)';
+    }
+    el.refreshBtn.classList.add('spinning');
+    try {
+      const files = await fetchFolderFiles(state.scriptUrl);
+      let added = 0;
+      const seen = new Set();
+      files.forEach(f => {
+        seen.add(f.id);
+        if (!state.files.has(f.id)) added++;
+        state.files.set(f.id, f);
+      });
+      // drop files removed from the folder
+      [...state.files.keys()].forEach(id => { if (!seen.has(id)) state.files.delete(id); });
+
+      rerenderAll();
+      el.statusMsg.textContent = '';
+      el.settings.classList.remove('open');
+      if (silent && added > 0) showToast(`${added} new frame${added === 1 ? '' : 's'} added`);
+    } catch (err){
+      el.statusMsg.textContent = 'Could not load folder: ' + err.message;
+      el.statusMsg.style.color = 'var(--warn)';
+    } finally {
+      el.refreshBtn.classList.remove('spinning');
+    }
+  }
+
+  document.getElementById('connect-btn').addEventListener('click', () => {
+    state.scriptUrl = el.scriptUrlInput.value.trim();
+    loadFolder();
+  });
+  el.refreshBtn.addEventListener('click', () => loadFolder());
+
+  // auto-refresh so newly uploaded images appear without a manual click
+  setInterval(() => { if (state.scriptUrl) loadFolder({ silent:true }); }, 60000);
+
+  applySize();
+  rerenderAll(); // shows empty state initially
+  if (state.scriptUrl) loadFolder();
+})();
+</script>
+</body>
+</html>
