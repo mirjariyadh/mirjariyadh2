@@ -171,7 +171,7 @@
     padding:8px 8px 7px;
     background:linear-gradient(to top, rgba(0,0,0,0.78), rgba(0,0,0,0));
     display:flex; align-items:flex-end; justify-content:space-between; gap:6px;
-    opacity:0; transition:opacity 0.15s ease;
+    opacity:1; transition:opacity 0.15s ease;
   }
   .frame:hover .overlay, .frame:focus-within .overlay{opacity:1;}
   .frame .fname{
@@ -382,9 +382,9 @@
   let lbIndex = -1;
 
   const sizeConfig = {
-    small:  { cell: 140, thumb: 300 },
-    medium: { cell: 220, thumb: 480 },
-    large:  { cell: 340, thumb: 720 },
+    small:  { cell: 50, thumb: 60 },
+    medium: { cell: 100, thumb: 110 },
+    large:  { cell: 200, thumb: 210 },
   };
 
   const el = {
